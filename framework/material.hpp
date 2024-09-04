@@ -12,6 +12,7 @@ struct Material
 	Color kd{ 0, 0, 0 }; //0 <= kd <= 1.0
 	Color ks{ 0, 0, 0 }; //0 <= ks <= 1.0
 	float exponent{ 0 }; //10 <= m <= 810
+	float reflectivity{ 1 }; //0 <= reflectivity <= 1.0, represents how much light is reflected
 };
 
 inline std::ostream& operator<<(std::ostream& os, Material const& material) // inline makes it so that the function can be defined within the header file

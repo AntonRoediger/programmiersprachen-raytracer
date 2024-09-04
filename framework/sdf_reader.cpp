@@ -57,6 +57,8 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 
 					line_as_stream >> parsed_material.exponent;
 
+					line_as_stream >> parsed_material.reflectivity;
+
 					//std::cout << '\n' << parsed_material << '\n';
 
 					materials.insert({ parsed_material.name, std::make_shared<Material>(parsed_material) }); // the materials still exist after the function is done, because of the shared pointers
