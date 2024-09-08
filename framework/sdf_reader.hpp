@@ -6,6 +6,7 @@
 #include "sphere.hpp"
 #include "box.hpp"
 #include "light.hpp"
+#include "composite.hpp"
 
 #include <glm/glm.hpp>
 #include <iostream>

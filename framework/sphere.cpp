@@ -36,13 +36,14 @@ HitPoint Sphere::intersect(Ray const& ray_) const
 	float intersection_distance_parameter = 0;
 	glm::vec3 ray_direction = glm::normalize(ray_.direction);
 	bool did_intersect_parameter = glm::intersectRaySphere(ray_.origin, ray_direction, center_, radius_ * radius_, intersection_distance_parameter); // outside so intersection_distance_parameter is updated
-	return HitPoint{ did_intersect_parameter, intersection_distance_parameter, Shape::name_, Shape::material_,  (ray_.origin + intersection_distance_parameter * ray_direction), ray_direction };
+	glm::vec3 position{ ray_.origin + intersection_distance_parameter * ray_direction };
+	return HitPoint{ did_intersect_parameter, intersection_distance_parameter, Shape::name_, Shape::material_, position, ray_direction, get_surface_normal(position)};
 }
 
-glm::vec3 Sphere::get_surface_normal(HitPoint const& hitpoint) const
+glm::vec3 Sphere::get_surface_normal(glm::vec3 const& hit_position_) const
 {
 	//if shadow acne on small spheres, look here
-	return glm::normalize(hitpoint.position_ - center_);
+	return glm::normalize(hit_position_ - center_);
 }
 
 std::ostream& operator<<(std::ostream& os, Sphere const& s)

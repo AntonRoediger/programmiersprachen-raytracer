@@ -38,7 +38,10 @@ void Renderer::render()
 
       Color color = trace_ray(scene_, ray, 0);
 
-      pixel.color = color;
+      for (int i = 0; i < 3; ++i)
+      {
+          pixel.color[i] = color[i] / (color[i] + 1);
+      }
       
       write(pixel);
   }
@@ -51,66 +54,56 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
 
     Color color_{ 0, 0, 0 };
 
-    HitPoint min_distance_hitpoint{ false, std::numeric_limits<float>::max() };
-
     glm::vec3 intersected_shape_surface_normal;
 
-    for (auto const& [name, shape] : scene_.shapes)
-    {
-        HitPoint hitpoint{ shape->intersect(ray_) };
-        if (hitpoint.did_intersect_ && hitpoint.distance_ < min_distance_hitpoint.distance_) //...and remember the closest hitpoint
-        {
-            intersected_shape_surface_normal = shape->get_surface_normal(hitpoint);
-            //move the hitpoint back a bit by the surface_normal, if shadow acne, check out get_surface_normal in Box and Sphere
-            hitpoint.position_ = hitpoint.position_ + 0.0001f * intersected_shape_surface_normal;
-            min_distance_hitpoint = hitpoint;
-        }
-    }
+    HitPoint hitpoint{ scene_.root->intersect(ray_) };
 
-    if (min_distance_hitpoint.did_intersect_) //if we did intersect an object
+    intersected_shape_surface_normal = hitpoint.surface_normal;
+
+    hitpoint.position_ = hitpoint.position_ + 0.0001f * intersected_shape_surface_normal;
+
+    if (hitpoint.did_intersect_) //if we did intersect an object
     {
         //see if there is an obstacle inbetween the hitpoint and the light source
-        HitPoint closest_obstacle{ false, std::numeric_limits<float>::max() };
         //accumulate light from every visible light source
         for (int i = 0; i < 3; ++i)
         {
-            color_[i] = 0.1f * min_distance_hitpoint.object_material_->ka[i]; //this is the ambient part
+            color_[i] = scene_.ambient[i] * hitpoint.object_material_->ka[i]; //this is the ambient part
         }
+
         for (Light const& light : scene_.lights)
         {
             bool light_visibility = 1;
+
             //get the path to a lightsource
-            Ray path{ min_distance_hitpoint.position_, light.position_ - min_distance_hitpoint.position_ };
-            //check if any objects are in the way
-            for (auto const& [name, shape] : scene_.shapes)
+            Ray path{ hitpoint.position_, light.position_ - hitpoint.position_ };
+
+            //check if there's any object inbetween the hitpoint and the light source
+            HitPoint closest_obstacle{ scene_.root->intersect(path) };
+            if (closest_obstacle.did_intersect_)
             {
-                //remember the hitpoint
-                HitPoint obstacle{ shape->intersect(path) };
-                if (obstacle.did_intersect_ && obstacle.distance_ < closest_obstacle.distance_) //...and remember the closest hitpoint
-                {
-                    closest_obstacle = obstacle;
-                    light_visibility = 0; //if there is an object in the way, this term nullifies diffuse and specular reflections
-                }
+                light_visibility = 0;
             }
+
             //light_visibility * (brightness of light source) * (kd * path_to_light_source * surface_normal
             // + ks * (reflected/outgoing ray * the ray from the hitpoint to the cameras eye))
             glm::vec3 reflected = 2 * glm::dot(path.direction, intersected_shape_surface_normal) * intersected_shape_surface_normal - path.direction;
             reflected = glm::normalize(reflected);
             for (int i = 0; i < 3; ++i)
             {
-                color_[i] += light_visibility * light.brightness_ * (min_distance_hitpoint.object_material_->kd[i]
+                color_[i] += light_visibility * light.brightness_ * (hitpoint.object_material_->kd[i]
                     * (std::max(glm::dot(path.direction, intersected_shape_surface_normal), 0.0f))
-                    + min_distance_hitpoint.object_material_->ks[i]
-                    * std::pow(std::max(glm::dot(reflected, -ray_.direction), 0.0f), min_distance_hitpoint.object_material_->exponent));
+                    + hitpoint.object_material_->ks[i]
+                    * std::pow(std::max(glm::dot(reflected, -ray_.direction), 0.0f), hitpoint.object_material_->exponent));
             }
         }
 
-        if (min_distance_hitpoint.object_material_->reflectivity > 0.0f && depth < 100)
+        if (hitpoint.object_material_->reflectivity > 0.0f && depth < 100)
         {
-            float other_part = min_distance_hitpoint.object_material_->reflectivity;
+            float other_part = hitpoint.object_material_->reflectivity;
             float this_materials_part_ = 1.0f - other_part;
             glm::vec3 reflected = -2 * glm::dot(ray_.direction, intersected_shape_surface_normal) * intersected_shape_surface_normal + ray_.direction;
-            Color reflected_part_ = trace_ray(scene_, Ray{ min_distance_hitpoint.position_, reflected }, depth);
+            Color reflected_part_ = trace_ray(scene_, Ray{ hitpoint.position_, reflected }, depth);
             for (int i = 0; i < 3; ++i)
             {
                 color_[i] = this_materials_part_ * color_[i] + other_part * reflected_part_[i];

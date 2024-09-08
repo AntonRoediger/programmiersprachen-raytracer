@@ -15,10 +15,10 @@ public:
 	double volume() const override;
 	std::ostream& print(std::ostream& os) const override;
 	HitPoint intersect(Ray const& ray_) const override;
-	glm::vec3 get_surface_normal(HitPoint const& hitpoint) const override;
 private:
 	glm::vec3 center_;
 	double radius_;
+	glm::vec3 get_surface_normal(glm::vec3 const& hit_position_) const override;
 };
 
 std::ostream& operator<<(std::ostream& os, Sphere const& s);

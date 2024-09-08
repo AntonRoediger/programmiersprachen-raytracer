@@ -9,12 +9,14 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 		if (!sdf_file.is_open())
 		{
 			std::cout << "Could not find or open: " << sdf_file_path << '\n';
-			return Scene{}; // needs consideration
+			return Scene{ std::map<std::string, std::shared_ptr<Material>>{}, std::shared_ptr<Shape>{}, std::vector<Light>{}, { 0, 0, 0 } }; // needs consideration
 		}
 
 		std::map<std::string, std::shared_ptr<Material>> materials;
 		std::map<std::string, std::shared_ptr<Shape>> shapes;
+		std::shared_ptr<Shape> root;
 		std::vector<Light> lights;
+		Color ambient{ 0.1, 0.1, 0.1 };
 		Camera camera{ "default_camera", std::numbers::pi / 2.0, { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 } };
 
 		std::string line_buffer; // individual lines are stored here
@@ -126,6 +128,31 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 						}
 					}
 
+					else if (token == "composite")
+					{
+						std::string parsed_composite_name_;
+						std::map<std::string, std::shared_ptr<Shape>> parsed_composite_children_;
+						std::string child_name_;
+
+						line_as_stream >> parsed_composite_name_;
+						while (line_as_stream)
+						{
+							line_as_stream >> child_name_;
+							auto child = shapes.find(child_name_);
+							if (child == shapes.end())
+							{
+								std::cout << "couldn't find child:" << child_name_ << " make sure the objects are parsed in the correct order\n";
+							}
+							else
+							{
+								parsed_composite_children_.insert({ child_name_, (*child).second });
+							}
+						}
+						Composite parsed_composite{ parsed_composite_name_, std::make_shared<Material>(Material{}), parsed_composite_children_ };
+						shapes.insert({ parsed_composite_name_, std::make_shared<Composite>(parsed_composite) });
+						root = std::make_shared<Composite>(parsed_composite);
+					}
+
 					else
 					{
 						std::cout << "unexpected keyword: " << token << '\n';
@@ -186,6 +213,14 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 				}
 			}
 
+			else if (token == "ambient")
+			{
+				for (int i = 0; i < 3; ++i)
+				{
+					line_as_stream >> ambient[i];
+				}
+			}
+
 			else
 			{
 				std::cout << "unexpected keyword: " << token << '\n';
@@ -193,6 +228,6 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 		}
 
 		sdf_file.close();
-		return Scene{ materials, shapes, lights, camera };
+		return Scene{ materials, root, lights, ambient, camera };
 	}
 }

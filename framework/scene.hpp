@@ -13,8 +13,9 @@
 struct Scene
 {
 	const std::map<std::string, std::shared_ptr<Material>> materials;
-	const std::map<std::string, std::shared_ptr<Shape>> shapes; //why exactly is this a map of shared pointers instead of just shapes?
+	const std::shared_ptr<Shape> root;
 	const std::vector<Light> lights;
+	const Color ambient;
 	Camera camera;
 
 	//does this need a constructor definition here?

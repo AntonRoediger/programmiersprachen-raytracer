@@ -63,6 +63,18 @@ struct Color
       }
   }
 
+  float operator[](int index) const
+  {
+      switch (index)
+      {
+      case 0: return r;
+      case 1: return g;
+      case 2: return b;
+      default:
+          throw std::out_of_range("index out of range!");
+      }
+  }
+
   //max should be 1.0 for each value
   float r;
   float g;

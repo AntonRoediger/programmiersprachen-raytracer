@@ -92,31 +92,34 @@ HitPoint Box::intersect(Ray const& ray_) const
 			}
 		}
 		// check if all was in bounds before
-		if (is_in_bounds) { return HitPoint{ true, t, Shape::name_, Shape::material_, intersection, ray_direction }; }
+		if (is_in_bounds) 
+		{ 
+			return HitPoint{ true, t, Shape::name_, Shape::material_, intersection, ray_direction, get_surface_normal(intersection)}; 
+		}
 	}
 
 	// if we didn't find an intersection so far, return false and some default values
-	return HitPoint{ false, 0, "", std::shared_ptr<Material>{}, glm::vec3{}, glm::vec3{} };
+	return HitPoint{ false, 0, "", std::shared_ptr<Material>{}, glm::vec3{}, glm::vec3{}, glm::vec3{} };
 }
 
-glm::vec3 Box::get_surface_normal(HitPoint const& hitpoint) const
+glm::vec3 Box::get_surface_normal(glm::vec3 const& hit_position_) const
 {
 	float margin = 0.0001;
 	glm::vec3 surface_normal{ 0, 0, 0 };
 	for (int i = 0; i < 3; ++i)
 	{
-		if (std::fabs(minimum_[i] - hitpoint.position_[i]) < margin) //-margin < minimum_[i] - hitpoint.direction_[i] < margin
+		if (std::fabs(minimum_[i] - hit_position_[i]) < margin) //-margin < minimum_[i] - hitpoint.direction_[i] < margin
 		{
 			surface_normal[i] = -1.0f;
 			return surface_normal;
 		}
-		else if (std::fabs(maximum_[i] - hitpoint.position_[i]) < margin) //-margin < minimum_[i] - hitpoint.direction_[i] < margin
+		else if (std::fabs(maximum_[i] - hit_position_[i]) < margin) //-margin < minimum_[i] - hitpoint.direction_[i] < margin
 		{
 			surface_normal[i] = 1.0f;/*hitpoint.position_[i];*/
 			return surface_normal;/*glm::normalize(surface_normal);*/
 		}
 	}
-	HitPoint debug{ hitpoint };
+	glm::vec3 debug{ hit_position_ };
 	std::cout << "couldn't find intersecting plane\n";
 	return surface_normal;
 }
