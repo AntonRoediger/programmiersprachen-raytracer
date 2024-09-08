@@ -20,11 +20,13 @@ public:
 	virtual std::ostream& print(std::ostream& os) const;
 	virtual HitPoint intersect(Ray const& ray_) const = 0;
 	virtual glm::vec3 get_surface_normal(HitPoint const& hitpoint) const = 0;
+	virtual glm::vec3 get_center() const = 0;
+	glm::mat4 world_transformation_ = glm::mat4(1.0); // Dont work with 'protected' in sdf_reader
+	glm::mat4 world_transformation_inv = glm::mat4(1.0);
 protected:
 	std::string name_;
 	std::shared_ptr<Material> material_;
-	glm::mat4 world_transformation_;
-	glm::mat4 world_transformation_inv;
+
 };
 
 std::ostream& operator<<(std::ostream& os, Shape const& s);

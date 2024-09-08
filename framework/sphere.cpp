@@ -49,3 +49,7 @@ std::ostream& operator<<(std::ostream& os, Sphere const& s)
 {
 	return s.print(os);
 }
+
+glm::vec3 Sphere::get_center() const {
+	return center_;
+}

@@ -19,6 +19,10 @@ Box::~Box()
 {
 	std::cout << "Box destructor called\n";
 }
+glm::vec3 Box::get_center() const { 
+	
+	return glm::vec3{ (maximum_.x + minimum_.x) / 2,( maximum_.y + minimum_.y) / 2, (maximum_.z + minimum_.z) / 2 };
+}
 
 double Box::area() const {
 	glm::vec3 diagonal_{ maximum_ - minimum_ };

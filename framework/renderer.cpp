@@ -8,6 +8,23 @@
 // -----------------------------------------------------------------------------
 
 #include "renderer.hpp"
+#include <iostream>
+
+
+
+// Scaling/Rotation/ NO Camera basis
+Ray transformRay(glm::mat4 const& mat, Ray const& ray) {
+    //point transformation
+    glm::vec4 point_trans{ ray.origin, 1 };
+    point_trans = mat * point_trans;
+    // direction transformation
+    glm::vec4 direct_trans{ ray.direction, 0 };
+    direct_trans = mat * direct_trans;
+    Ray ray_transed{ glm::vec3{ point_trans[0], point_trans[1], point_trans[2]}, glm::vec3{direct_trans[0], direct_trans[1], direct_trans[2]} };
+    return ray_transed;
+ 
+ 
+}
 
 Renderer::Renderer(unsigned w, unsigned h, std::string const& file)
   : width_(w)
@@ -52,21 +69,60 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
     Color color_{ 0, 0, 0 };
 
     HitPoint min_distance_hitpoint{ false, std::numeric_limits<float>::max() };
-
+    glm::mat4 Camera_Transformation = glm::mat4(1); //needed for the camera transformation to the objcet
     glm::vec3 intersected_shape_surface_normal;
-
-    for (auto const& [name, shape] : scene_.shapes)
-    {
-        HitPoint hitpoint{ shape->intersect(ray_) };
-        if (hitpoint.did_intersect_ && hitpoint.distance_ < min_distance_hitpoint.distance_) //...and remember the closest hitpoint
+    bool flag = false; //for normal during the transfomration
+    for (auto const& [name, shape] : scene_.shapes) // Find closest intersection object
+    {   
+        HitPoint hitpoint;
+        glm::vec3 transformed_normal;
+        //Transform ray
+        //if the shape has a non-uni transfomration matrix->TRANSFORM RAY in object coordinate system, find the hitpoint and trasnform back, else as normal
+        if (shape->world_transformation_ != glm::mat4(1.0))
         {
-            intersected_shape_surface_normal = shape->get_surface_normal(hitpoint);
+            
+                                                                               //// Camera_Transformation = { glm::vec4{1,0,0,0},glm::vec4{0,1,0,0}, glm::vec4{0,0,1,0}, glm::vec4{shape->get_center()[0],shape->get_center()[1],shape->get_center()[2],1} };
+                                                                               //// Ray shape_oriented = transformRay(Camera_Transformation, ray_);
+            
+            shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+            Ray ray_transformed = transformRay(shape->world_transformation_inv, ray_);
+            hitpoint = { shape->intersect(ray_transformed) };
+            
+            if (hitpoint.did_intersect_) {
+                transformed_normal= shape->get_surface_normal(hitpoint); // in the non-transofmred coordinate ysstem 
+                flag = true;
+            }
+            
+            //change back the transformation
+            glm::vec4 point_trans{ hitpoint.position_, 1 };
+            glm::vec4 result = shape->world_transformation_ * point_trans; 
+                                                                                ////to the shape oriented system: glm::inverse(Camera_Transformation)* 
+            hitpoint.position_ = { glm::vec3{ result[0], result[1], result[2]} };
+
+        }
+        else {
+             hitpoint = shape->intersect(ray_);
+        }
+        
+        
+        if (hitpoint.did_intersect_ && (hitpoint.distance_ < min_distance_hitpoint.distance_)) //...and remember the closest hitpoint
+        {
+            if (flag) { //use the transofmred normal
+                glm::vec4 temp = glm::transpose(shape->world_transformation_inv) * glm::vec4{ transformed_normal, 0 };
+                                                                                        //// glm::inverse(Camera_Transformation)*
+                intersected_shape_surface_normal = { temp[0], temp[1], temp[2] };
+                flag = false;
+            }
+            else {
+                intersected_shape_surface_normal = shape->get_surface_normal(hitpoint);
+            }
+            
             //move the hitpoint back a bit by the surface_normal, if shadow acne, check out get_surface_normal in Box and Sphere
-            hitpoint.position_ = hitpoint.position_ + 0.0001f * intersected_shape_surface_normal;
+            hitpoint.position_ = hitpoint.position_ +0.0001f * intersected_shape_surface_normal;
             min_distance_hitpoint = hitpoint;
         }
     }
-
+    
     if (min_distance_hitpoint.did_intersect_) //if we did intersect an object
     {
         //see if there is an obstacle inbetween the hitpoint and the light source
@@ -85,7 +141,26 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
             for (auto const& [name, shape] : scene_.shapes)
             {
                 //remember the hitpoint
-                HitPoint obstacle{ shape->intersect(path) };
+
+                HitPoint obstacle;
+                //Transform ray
+                //if the shape has a non-uni transfomration matrix->TRANSFORM RAY in object coordinate system, find the hitpoint and trasnform back, else as normal
+                if (shape->world_transformation_ != glm::mat4(1.0))
+                {
+                                                                //// Ray shape_oriented = transformRay(Camera_Transformation, path);
+
+                    shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+                    Ray ray_transformed = transformRay(shape->world_transformation_inv, path);
+                    obstacle = { shape->intersect(ray_transformed) };
+                    glm::vec4 point_trans{ obstacle.position_, 1 };
+                    glm::vec4 result =shape->world_transformation_ * point_trans;
+                                                                            //// glm::inverse(Camera_Transformation) * 
+                    obstacle.position_ = { glm::vec3{ result[0], result[1], result[2]} };
+                }
+                else {
+                    obstacle = shape->intersect(path);
+                }
+                
                 if (obstacle.did_intersect_ && obstacle.distance_ < closest_obstacle.distance_) //...and remember the closest hitpoint
                 {
                     closest_obstacle = obstacle;

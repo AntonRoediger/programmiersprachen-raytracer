@@ -13,7 +13,7 @@ Camera::Camera() :
 
 Camera::Camera(std::string const& name_parameter, float fov_x_parameter, glm::vec3 const& eye_parameter, glm::vec3 const& dir_parameter, glm::vec3 const& up_parameter) :
 	name_(name_parameter), 
-	fov_x(fov_x_parameter), 
+	fov_x(fov_x_parameter*std::numbers::pi/180),
 	eye_(eye_parameter), 
 	dir_(dir_parameter), 
 	up_(up_parameter), 
@@ -49,6 +49,7 @@ std::vector<Ray> Camera::generate_rays(unsigned int width_, unsigned int height_
 
 std::ostream& Camera::print(std::ostream& os) const
 {
+	std::cout<<"The direction of axes: x is pointing right, y - up, z towards us." << "\n";
 	return os << "name: " << name_ << ", fov-x: " << fov_x << ", eye: (" << eye_[0] << ", " << eye_[1] << ", " << eye_[2] << ")" << ", dir: (" << dir_[0] << ", " << dir_[1] << ", " << dir_[2] << "), up: (" << up_[0] << ", " << up_[1] << ", " << up_[2] << "), distance: " << distance_ << "\n";
 }
 
