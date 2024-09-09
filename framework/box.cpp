@@ -100,7 +100,7 @@ HitPoint Box::intersect(Ray const& ray_) const
 		{ 
 			glm::vec3 surface_normal = get_surface_normal(intersection);
 			Ray retransformed_ray_{ transform_ray(world_transformation_, Ray{ intersection + 0.0001f * surface_normal, ray_direction }) };
-			Ray transformed_surface_normal{ transform_ray(glm::transpose(world_transformation_), Ray{{0, 0, 0}, surface_normal}) };
+			Ray transformed_surface_normal{ transform_ray(glm::transpose(world_transformation_inv), Ray{{0, 0, 0}, surface_normal}) };
 			//std::cout << "ray after final transformation = " << retransformed_ray_.origin[0] << ", " << retransformed_ray_.origin[1] << ", " << retransformed_ray_.origin[2]
 			//	<< ", " << retransformed_ray_.origin[0] << ", " << retransformed_ray_.origin[1] << ", " << retransformed_ray_.origin[2] << "\n";
 			return { true, t, Shape::name_, Shape::material_, retransformed_ray_.origin, retransformed_ray_.direction, transformed_surface_normal.direction };
