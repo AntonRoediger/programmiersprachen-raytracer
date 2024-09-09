@@ -213,6 +213,89 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 				}
 			}
 
+			else if (token == "transform")
+			{
+				line_as_stream >> token;
+
+				glm::mat4 transf_mat = glm::mat4(1.0);
+
+				for (auto const& [name, shape] : shapes)
+				{
+					if (token == name)
+					{
+						line_as_stream >> token;
+						
+						if (token == "scale")
+						{
+							line_as_stream >> transf_mat[0][0];
+							line_as_stream >> transf_mat[1][1];
+							line_as_stream >> transf_mat[2][2];
+
+							shape->world_transformation_ = transf_mat * shape->world_transformation_;
+							shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+						}
+						else if (token == "translate")
+						{
+							line_as_stream >> transf_mat[3][0];
+							line_as_stream >> transf_mat[3][1];
+							line_as_stream >> transf_mat[3][2];
+
+							shape->world_transformation_ = transf_mat * shape->world_transformation_;
+							shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+						}
+						else if (token == "rotate")
+						{
+							float angle;
+							float coef0;
+							float coef1;
+							float coef2;
+							line_as_stream >> angle;
+							line_as_stream >> coef0;
+							line_as_stream >> coef1;
+							line_as_stream >> coef2;
+
+							if (coef0 == 1)
+							{
+								transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
+								transf_mat[1][2] = -sin(angle * std::numbers::pi / 180);
+								transf_mat[2][1] = sin(angle * std::numbers::pi / 180);
+								transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
+
+								shape->world_transformation_ = transf_mat * shape->world_transformation_;
+								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+							}
+
+							else if (coef1 == 1)
+							{
+								transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
+								transf_mat[2][0] = sin(angle * std::numbers::pi / 180);
+								transf_mat[0][2] = -sin(angle * std::numbers::pi / 180);
+								transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
+
+								shape->world_transformation_ = transf_mat * shape->world_transformation_;
+								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+							}
+
+							else if (coef2 == 1)
+							{
+								transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
+								transf_mat[1][0] = -sin(angle * std::numbers::pi / 180);
+								transf_mat[0][1] = sin(angle * std::numbers::pi / 180);
+								transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
+
+								shape->world_transformation_ = transf_mat * shape->world_transformation_;
+								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
+							}
+						}
+						else
+						{
+							std::cout << "unexpected keyword: " << token << "\n";
+						}
+						break;
+					}
+				}
+			}
+
 			else if (token == "ambient")
 			{
 				for (int i = 0; i < 3; ++i)

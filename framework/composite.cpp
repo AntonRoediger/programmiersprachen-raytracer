@@ -55,6 +55,11 @@ std::ostream& Composite::print(std::ostream& os) const
 	return os;
 }
 
+glm::vec3 Composite::get_center() const
+{
+	return { 0, 0, 0 };
+}
+
 glm::vec3 Composite::get_surface_normal(glm::vec3 const& hit_position_) const
 {
 	//I don't like this, but this is a placeholder and shouldn't be called

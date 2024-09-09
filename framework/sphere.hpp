@@ -15,6 +15,7 @@ public:
 	double volume() const override;
 	std::ostream& print(std::ostream& os) const override;
 	HitPoint intersect(Ray const& ray_) const override;
+	glm::vec3 get_center() const override;
 private:
 	glm::vec3 center_;
 	double radius_;

@@ -11,6 +11,9 @@ struct Ray
 
 	Ray(glm::vec3 const& origin_parameter, glm::vec3 const& direction_parameter) : origin(origin_parameter), direction(glm::normalize(direction_parameter))
 	{}
+
 };
+
+Ray transform_ray(glm::mat4 const& mat, Ray const& ray);
 
 #endif

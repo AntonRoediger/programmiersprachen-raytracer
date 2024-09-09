@@ -46,16 +46,20 @@ std::ostream& operator<<(std::ostream& os, Box const& b)
 
 HitPoint Box::intersect(Ray const& ray_) const
 {
-	glm::vec3 ray_direction{ glm::normalize(ray_.direction) }; // normalize direction (redundant?)
+	//std::cout << "ray before transformation = " << ray_.origin[0] << ", " << ray_.origin[1] << ", " << ray_.origin[2] 
+	//	<< ", " << ray_.origin[0] << ", " << ray_.origin[1] << ", " << ray_.origin[2] << "\n";
+	Ray transformed_ray_ = transform_ray(world_transformation_inv, ray_);
+
+	glm::vec3 ray_direction{ glm::normalize(transformed_ray_.direction) }; // normalize direction (redundant?)
 
 	std::vector<std::tuple<float, int>> distances; // t, (x|y|z)
 
-	distances.push_back(std::make_tuple((minimum_.x - ray_.origin.x) / ray_direction.x, 0));
-	distances.push_back(std::make_tuple((maximum_.x - ray_.origin.x) / ray_direction.x, 0));
-	distances.push_back(std::make_tuple((minimum_.y - ray_.origin.y) / ray_direction.y, 1));
-	distances.push_back(std::make_tuple((maximum_.y - ray_.origin.y) / ray_direction.y, 1));
-	distances.push_back(std::make_tuple((minimum_.z - ray_.origin.z) / ray_direction.z, 2));
-	distances.push_back(std::make_tuple((maximum_.z - ray_.origin.z) / ray_direction.z, 2));
+	distances.push_back(std::make_tuple((minimum_.x - transformed_ray_.origin.x) / ray_direction.x, 0));
+	distances.push_back(std::make_tuple((maximum_.x - transformed_ray_.origin.x) / ray_direction.x, 0));
+	distances.push_back(std::make_tuple((minimum_.y - transformed_ray_.origin.y) / ray_direction.y, 1));
+	distances.push_back(std::make_tuple((maximum_.y - transformed_ray_.origin.y) / ray_direction.y, 1));
+	distances.push_back(std::make_tuple((minimum_.z - transformed_ray_.origin.z) / ray_direction.z, 2));
+	distances.push_back(std::make_tuple((maximum_.z - transformed_ray_.origin.z) / ray_direction.z, 2));
 
 	// sort the vector by distances from low to high
 	std::sort(distances.begin(), distances.end(), [](std::tuple<float, int> & t_0, std::tuple<float, int> & t_1) -> bool {
@@ -80,7 +84,7 @@ HitPoint Box::intersect(Ray const& ray_) const
 		// check if in bounds
 		float t = std::get<0>(tuple); // the distance t
 		int x_y_z = std::get<1>(tuple); // the value that stored whether we intersected with an x-, y- or z-plane
-		glm::vec3 intersection{ ray_.origin + t * ray_direction }; // calculate the intersection point with said plane
+		glm::vec3 intersection{ transformed_ray_.origin + t * ray_direction }; // calculate the intersection point with said plane
 		for (int i = x_y_z + 1; i < x_y_z + 3; ++i) // have to compare with other variables (if x-plane, compare to y and z)
 		{
 			int j = i % 3; // this makes sure that we get all the indices different from the one we intersected with
@@ -94,12 +98,22 @@ HitPoint Box::intersect(Ray const& ray_) const
 		// check if all was in bounds before
 		if (is_in_bounds) 
 		{ 
-			return HitPoint{ true, t, Shape::name_, Shape::material_, intersection, ray_direction, get_surface_normal(intersection)}; 
+			glm::vec3 surface_normal = get_surface_normal(intersection);
+			Ray retransformed_ray_{ transform_ray(world_transformation_, Ray{ intersection + 0.0001f * surface_normal, ray_direction }) };
+			Ray transformed_surface_normal{ transform_ray(glm::transpose(world_transformation_), Ray{{0, 0, 0}, surface_normal}) };
+			//std::cout << "ray after final transformation = " << retransformed_ray_.origin[0] << ", " << retransformed_ray_.origin[1] << ", " << retransformed_ray_.origin[2]
+			//	<< ", " << retransformed_ray_.origin[0] << ", " << retransformed_ray_.origin[1] << ", " << retransformed_ray_.origin[2] << "\n";
+			return { true, t, Shape::name_, Shape::material_, retransformed_ray_.origin, retransformed_ray_.direction, transformed_surface_normal.direction };
 		}
 	}
 
 	// if we didn't find an intersection so far, return false and some default values
 	return HitPoint{ false, 0, "", std::shared_ptr<Material>{}, glm::vec3{}, glm::vec3{}, glm::vec3{} };
+}
+
+glm::vec3 Box::get_center() const
+{
+	return glm::vec3{ (maximum_.x + minimum_.x) / 2.0f, (maximum_.y + minimum_.y) / 2.0f, (maximum_.z + minimum_.z) / 2.0f };
 }
 
 glm::vec3 Box::get_surface_normal(glm::vec3 const& hit_position_) const

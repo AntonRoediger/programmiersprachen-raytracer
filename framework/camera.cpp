@@ -13,7 +13,7 @@ Camera::Camera() :
 
 Camera::Camera(std::string const& name_parameter, float fov_x_parameter, glm::vec3 const& eye_parameter, glm::vec3 const& dir_parameter, glm::vec3 const& up_parameter) :
 	name_(name_parameter), 
-	fov_x(fov_x_parameter), 
+	fov_x(fov_x_parameter * std::numbers::pi / 180),
 	eye_(eye_parameter), 
 	dir_(dir_parameter), 
 	up_(up_parameter), 

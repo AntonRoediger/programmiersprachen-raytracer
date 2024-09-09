@@ -32,12 +32,24 @@ std::ostream& Sphere::print(std::ostream& os) const
 }
 
 HitPoint Sphere::intersect(Ray const& ray_) const
-{	
+{
+	Ray transformed_ray_ = transform_ray(world_transformation_inv, ray_);
+
 	float intersection_distance_parameter = 0;
-	glm::vec3 ray_direction = glm::normalize(ray_.direction);
-	bool did_intersect_parameter = glm::intersectRaySphere(ray_.origin, ray_direction, center_, radius_ * radius_, intersection_distance_parameter); // outside so intersection_distance_parameter is updated
-	glm::vec3 position{ ray_.origin + intersection_distance_parameter * ray_direction };
-	return HitPoint{ did_intersect_parameter, intersection_distance_parameter, Shape::name_, Shape::material_, position, ray_direction, get_surface_normal(position)};
+	glm::vec3 ray_direction = glm::normalize(transformed_ray_.direction);
+	bool did_intersect_parameter = glm::intersectRaySphere(transformed_ray_.origin, ray_direction, center_, radius_ * radius_, intersection_distance_parameter); // outside so intersection_distance_parameter is updated
+	glm::vec3 position{ transformed_ray_.origin + intersection_distance_parameter * ray_direction };
+
+	glm::vec3 surface_normal = get_surface_normal(position);
+	Ray retransformed_ray_{ transform_ray(world_transformation_, Ray{ position + 0.0001f * surface_normal, ray_direction }) };
+	Ray transformed_surface_normal{ transform_ray(glm::transpose(world_transformation_inv), Ray{{0, 0, 0}, surface_normal}) };
+	
+	return HitPoint{ did_intersect_parameter, intersection_distance_parameter, Shape::name_, Shape::material_, retransformed_ray_.origin, retransformed_ray_.direction, transformed_surface_normal.direction };
+}
+
+glm::vec3 Sphere::get_center() const
+{
+	return center_;
 }
 
 glm::vec3 Sphere::get_surface_normal(glm::vec3 const& hit_position_) const

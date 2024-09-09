@@ -54,13 +54,17 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
 
     Color color_{ 0, 0, 0 };
 
+    glm::mat4 camer_transformation = glm::mat4(1);//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
     glm::vec3 intersected_shape_surface_normal;
+
+    bool flag = false;//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     HitPoint hitpoint{ scene_.root->intersect(ray_) };
 
     intersected_shape_surface_normal = hitpoint.surface_normal;
 
-    hitpoint.position_ = hitpoint.position_ + 0.0001f * intersected_shape_surface_normal;
+    //hitpoint.position_ = hitpoint.position_ + 0.0001f * intersected_shape_surface_normal;
 
     if (hitpoint.did_intersect_) //if we did intersect an object
     {
@@ -112,7 +116,7 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
         //surface_normal visualisation
         /*for (int i = 0; i < 3; ++i)
         {
-            pixel.color[i] = intersected_shape_surface_normal[i] * 0.5 + 0.5;
+            color_[i] = intersected_shape_surface_normal[i] * 0.5 + 0.5;
         }*/
     }
     else //if no object is hit
