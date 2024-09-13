@@ -19,10 +19,15 @@ Renderer::Renderer(unsigned w, unsigned h, std::string const& file)
 
 void Renderer::render()
 {
+    render("./example.sdf");
+}
+
+void Renderer::render(std::string const& sdf_file_path)
+{
   //read sdf file
-  Scene scene_{ read_sdf_file("./example.sdf") };
+  Scene scene_{ read_sdf_file(sdf_file_path) };
   Camera test_camera = scene_.camera;
-  std::cout << test_camera;
+  //std::cout << test_camera;
 
   std::vector<Ray> rays{ test_camera.generate_rays(width_, height_) }; //returns all rays in order of their pixels (top left to bottom right)
 
@@ -54,11 +59,7 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
 
     Color color_{ 0, 0, 0 };
 
-    glm::mat4 camer_transformation = glm::mat4(1);//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
     glm::vec3 intersected_shape_surface_normal;
-
-    bool flag = false;//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     HitPoint hitpoint{ scene_.root->intersect(ray_) };
 
@@ -102,7 +103,7 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
             }
         }
 
-        if (hitpoint.object_material_->reflectivity > 0.0f && depth < 100)
+        if (hitpoint.object_material_->reflectivity > 0.0f && depth < 25)
         {
             float other_part = hitpoint.object_material_->reflectivity;
             float this_materials_part_ = 1.0f - other_part;
@@ -121,7 +122,10 @@ Color Renderer::trace_ray(Scene const& scene_, Ray const& ray_, unsigned int dep
     }
     else //if no object is hit
     {
-        color_ = { 0.25, 0.25, 0.25 }; //this could be some sort of background image
+        for (int i = 0; i < 3; ++i)
+        {
+            color_[i] = (*scene_.materials.find("reflective_black")).second->ka[i]; //this could be some sort of background image
+        }
     }
     return color_;
 }

@@ -29,6 +29,7 @@ public:
   Renderer(unsigned w, unsigned h, std::string const& file);
 
   void render();
+  void render(std::string const& sdf_file_path);
   void write(Pixel const& p);
   Color trace_ray(Scene const& scene_, Ray const& ray_, unsigned int depth);
 

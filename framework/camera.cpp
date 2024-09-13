@@ -19,12 +19,12 @@ Camera::Camera(std::string const& name_parameter, float fov_x_parameter, glm::ve
 	up_(up_parameter), 
 	distance_((std::sin(std::numbers::pi/2.0 - fov_x/2.0)/(2 * std::sin(fov_x/2.0))))
 {
-	std::cout << "Camera constructor called\n";
+	//std::cout << "Camera constructor called\n";
 }
 
 Camera::~Camera()
 {
-	std::cout << "Camera destructor called\n";
+	//std::cout << "Camera destructor called\n";
 }
 
 std::vector<Ray> Camera::generate_rays(unsigned int width_, unsigned int height_) const
@@ -37,12 +37,11 @@ std::vector<Ray> Camera::generate_rays(unsigned int width_, unsigned int height_
 	{
 		for (int current_column = 0; current_column < width_; ++current_column)
 		{
-			rays.push_back(Ray{ eye_, glm::vec3{ current_column, current_row, 0 } - origin_shift_1 });
+			Ray ray{ eye_, glm::vec3{ current_column, current_row, 0 } - origin_shift_1 };
+			ray = transform_ray(world_transformation_, ray);
+			rays.push_back(ray);
 		}
 	}
-
-	//so far we should have a default camera at origin{0, 0, 0} pointing towards {0, 0, -1}, up is {0, 1, 0} (no matter what up_ and dir_ are)
-	//now apply a rotation matrix to the camera conform to up_ and dir_
 	
 	return rays;
 }

@@ -2,12 +2,12 @@
 
 Composite::Composite(std::string const& name_parameter, std::shared_ptr<Material> const& material_parameter, std::map<std::string, std::shared_ptr<Shape>> const& children_parameter) : Shape::Shape{name_parameter, material_parameter}, children_(children_parameter)
 {
-	std::cout << "composite constructor called\n";
+	//std::cout << "composite constructor called\n";
 }
 
 Composite::~Composite()
 {
-	std::cout << "composite destructor called\n";
+	//std::cout << "composite destructor called\n";
 }
 
 double Composite::area() const
@@ -32,16 +32,23 @@ double Composite::volume() const
 
 HitPoint Composite::intersect(Ray const& ray_) const
 {
+	Ray transformed_ray_ = transform_ray(world_transformation_inv, ray_);
+
 	HitPoint min_distance_hitpoint{ false, std::numeric_limits<float>::max() };
 
 	for (auto const& [name, shape] : children_)
 	{
-		HitPoint hitpoint{shape->intersect(ray_)};
+		HitPoint hitpoint{shape->intersect(transformed_ray_)};
 		if (hitpoint.did_intersect_ && hitpoint.distance_ < min_distance_hitpoint.distance_)
 		{
 			min_distance_hitpoint = hitpoint;
 		}
 	}
+	Ray retransformed_ray_{ transform_ray(world_transformation_, Ray{ min_distance_hitpoint.position_, min_distance_hitpoint.direction_ }) };
+
+	min_distance_hitpoint.position_ = retransformed_ray_.origin;
+	min_distance_hitpoint.direction_ = retransformed_ray_.direction;
+
 	return min_distance_hitpoint;
 }
 

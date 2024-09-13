@@ -17,7 +17,8 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 		std::shared_ptr<Shape> root;
 		std::vector<Light> lights;
 		Color ambient{ 0.1, 0.1, 0.1 };
-		Camera camera{ "default_camera", std::numbers::pi / 2.0, { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 } };
+		Camera camera{ "default_camera", 90, { 0, 0, 0 }, { 0, 0, -1 }, { 0, 1, 0 } };
+		std::string parsed_camera_name_;
 
 		std::string line_buffer; // individual lines are stored here
 
@@ -180,31 +181,49 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 
 				else if (token == "camera")
 				{
-					std::string parsed_camera_name_;
 					float parsed_camera_fov_x_;
-					glm::vec3 parsed_camera_eye_;
-					glm::vec3 parsed_camera_dir_;
-					glm::vec3 parsed_camera_up_;
+					glm::vec3 parsed_camera_eye_ = { 0, 0, 0 };
+					glm::vec3 parsed_camera_dir_ = { 0, 0, -1 };
+					glm::vec3 parsed_camera_up_ = { 0, 1, 0 };
 
 					line_as_stream >> parsed_camera_name_;
 					line_as_stream >> parsed_camera_fov_x_;
 
-					for (int i = 0; i < 3; ++i)
+					/*for (int i = 0; i < 3; ++i)
 					{
 						line_as_stream >> parsed_camera_eye_[i];
 					}
 
-					for (int i = 0; i < 3; ++i)
+					if (line_as_stream)
 					{
-						line_as_stream >> parsed_camera_dir_[i];
+						for (int i = 0; i < 3; ++i)
+						{
+							line_as_stream >> parsed_camera_dir_[i];
+						}
+						glm::normalize(parsed_camera_dir_);
+					}
+					else
+					{
+						parsed_camera_dir_ = { 0, 0, -1 };
 					}
 
-					for (int i = 0; i < 3; ++i)
+					if (line_as_stream)
 					{
-						line_as_stream >> parsed_camera_up_[i];
+						for (int i = 0; i < 3; ++i)
+						{
+							line_as_stream >> parsed_camera_up_[i];
+						}
+						glm::normalize(parsed_camera_up_);
 					}
+					else
+					{
+						parsed_camera_up_ = { 0, 1, 0 };
+					}*/
 
 					camera = { parsed_camera_name_, parsed_camera_fov_x_, parsed_camera_eye_, parsed_camera_dir_, parsed_camera_up_ };
+					glm::vec3 u = glm::normalize(glm::cross(parsed_camera_dir_, parsed_camera_up_));
+					glm::vec3 v = glm::normalize(glm::cross(u, parsed_camera_dir_));
+					camera.world_transformation_ = { glm::vec4{u, 0}, glm::vec4{v, 0}, glm::vec4{-parsed_camera_dir_, 0} , glm::vec4{parsed_camera_eye_, 1} };
 				}
 
 				else
@@ -213,86 +232,121 @@ Scene read_sdf_file(std::string const& sdf_file_path)
 				}
 			}
 
+			else if (token == "")
+			{
+				continue;
+			}
+
 			else if (token == "transform")
 			{
 				line_as_stream >> token;
 
+				glm::mat4 world_transformation_;
+				glm::mat4 world_transformation_inv;
+
+				std::shared_ptr<Shape> shape_;
+
 				glm::mat4 transf_mat = glm::mat4(1.0);
+
+				int marker = -1; //0 means camera, 1 means shape
+
+				if (token == parsed_camera_name_)
+				{
+					world_transformation_ = camera.world_transformation_;
+					marker = 0;
+				}
 
 				for (auto const& [name, shape] : shapes)
 				{
 					if (token == name)
 					{
-						line_as_stream >> token;
-						
-						if (token == "scale")
-						{
-							line_as_stream >> transf_mat[0][0];
-							line_as_stream >> transf_mat[1][1];
-							line_as_stream >> transf_mat[2][2];
-
-							shape->world_transformation_ = transf_mat * shape->world_transformation_;
-							shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
-						}
-						else if (token == "translate")
-						{
-							line_as_stream >> transf_mat[3][0];
-							line_as_stream >> transf_mat[3][1];
-							line_as_stream >> transf_mat[3][2];
-
-							shape->world_transformation_ = transf_mat * shape->world_transformation_;
-							shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
-						}
-						else if (token == "rotate")
-						{
-							float angle;
-							float coef0;
-							float coef1;
-							float coef2;
-							line_as_stream >> angle;
-							line_as_stream >> coef0;
-							line_as_stream >> coef1;
-							line_as_stream >> coef2;
-
-							if (coef0 == 1)
-							{
-								transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
-								transf_mat[1][2] = -sin(angle * std::numbers::pi / 180);
-								transf_mat[2][1] = sin(angle * std::numbers::pi / 180);
-								transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
-
-								shape->world_transformation_ = transf_mat * shape->world_transformation_;
-								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
-							}
-
-							else if (coef1 == 1)
-							{
-								transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
-								transf_mat[2][0] = sin(angle * std::numbers::pi / 180);
-								transf_mat[0][2] = -sin(angle * std::numbers::pi / 180);
-								transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
-
-								shape->world_transformation_ = transf_mat * shape->world_transformation_;
-								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
-							}
-
-							else if (coef2 == 1)
-							{
-								transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
-								transf_mat[1][0] = -sin(angle * std::numbers::pi / 180);
-								transf_mat[0][1] = sin(angle * std::numbers::pi / 180);
-								transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
-
-								shape->world_transformation_ = transf_mat * shape->world_transformation_;
-								shape->world_transformation_inv = glm::inverse(shape->world_transformation_);
-							}
-						}
-						else
-						{
-							std::cout << "unexpected keyword: " << token << "\n";
-						}
-						break;
+						shape_ = shape;
+						world_transformation_ = shape->world_transformation_;
+						world_transformation_inv = shape->world_transformation_inv;
+						marker = 1;
 					}
+				}
+
+				line_as_stream >> token;
+
+				if (token == "scale")
+				{
+					line_as_stream >> transf_mat[0][0];
+					line_as_stream >> transf_mat[1][1];
+					line_as_stream >> transf_mat[2][2];
+
+					world_transformation_ = transf_mat * world_transformation_;
+					world_transformation_inv = glm::inverse(world_transformation_);
+				}
+				else if (token == "translate")
+				{
+					line_as_stream >> transf_mat[3][0];
+					line_as_stream >> transf_mat[3][1];
+					line_as_stream >> transf_mat[3][2];
+
+					world_transformation_ = transf_mat * world_transformation_;
+					world_transformation_inv = glm::inverse(world_transformation_);
+				}
+				else if (token == "rotate")
+				{
+					float angle;
+					float coef0;
+					float coef1;
+					float coef2;
+					line_as_stream >> angle;
+					line_as_stream >> coef0;
+					line_as_stream >> coef1;
+					line_as_stream >> coef2;
+
+					if (coef0 == 1)
+					{
+						transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
+						transf_mat[1][2] = -sin(angle * std::numbers::pi / 180);
+						transf_mat[2][1] = sin(angle * std::numbers::pi / 180);
+						transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
+
+						world_transformation_ = transf_mat * world_transformation_;
+						world_transformation_inv = glm::inverse(world_transformation_);
+					}
+
+					else if (coef1 == 1)
+					{
+						transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
+						transf_mat[2][0] = sin(angle * std::numbers::pi / 180);
+						transf_mat[0][2] = -sin(angle * std::numbers::pi / 180);
+						transf_mat[2][2] = cos(angle * std::numbers::pi / 180);
+
+						world_transformation_ = transf_mat * world_transformation_;
+						world_transformation_inv = glm::inverse(world_transformation_);
+					}
+
+					else if (coef2 == 1)
+					{
+						transf_mat[0][0] = cos(angle * std::numbers::pi / 180);
+						transf_mat[1][0] = -sin(angle * std::numbers::pi / 180);
+						transf_mat[0][1] = sin(angle * std::numbers::pi / 180);
+						transf_mat[1][1] = cos(angle * std::numbers::pi / 180);
+
+						world_transformation_ = transf_mat * world_transformation_;
+						world_transformation_inv = glm::inverse(world_transformation_);
+					}
+				}
+				else
+				{
+					std::cout << "unexpected keyword: " << token << "\n";
+				}
+				switch (marker)
+				{
+				case 0: 
+					camera.world_transformation_ = world_transformation_;
+					break;
+				case 1: 
+					shape_->world_transformation_ = world_transformation_; 
+					shape_->world_transformation_inv = world_transformation_inv;
+					break;
+				default: 
+					std::cout << "couldn't find the object to transform\n";
+					break;
 				}
 			}
 

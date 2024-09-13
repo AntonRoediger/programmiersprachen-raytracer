@@ -21,12 +21,13 @@ public:
 	~Camera();
 	std::vector<Ray> generate_rays(unsigned int width_, unsigned int height_) const;
 	std::ostream& print(std::ostream& os) const;
+	glm::mat4 world_transformation_ = glm::mat4(1.0);
 private:
 	std::string name_;
 	float fov_x; //in radians please
 	glm::vec3 eye_;
-	glm::vec3 dir_;
-	glm::vec3 up_;
+	glm::vec3 dir_ = { 0, 0, -1 };
+	glm::vec3 up_ = { 0, 1, 0 };
 	float distance_;
 };
 

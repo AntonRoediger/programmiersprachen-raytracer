@@ -3,6 +3,7 @@
 #include "material.hpp"
 #include "scene.hpp"
 #include "sdf_reader.hpp"
+#include "sdf_writer.hpp"
 #include "ray.hpp"
 
 #include <GLFW/glfw3.h>
@@ -18,22 +19,49 @@
 //now single threaded again
 int main(int argc, char* argv[])
 {
-  unsigned const image_width = 1920; //(1920) //formerly 800 //don't set to 0!
-  unsigned const image_height = 1200; //(1200) //formerly 600 //don't set to 0!
-  std::string const filename = "./rendered_image.ppm";
+	unsigned const image_width = 2560; //(1920) //formerly 800 //don't set to 0!
+	unsigned const image_height = 1600; //(1080) //formerly 600 //don't set to 0!
+	int max = 120;
 
-  Renderer renderer{image_width, image_height, filename};
+	std::vector<glm::vec3> positions(15, glm::vec3{ 0, 0, 0 });
 
-  renderer.render();
+	for (int current_frame = 0; current_frame < max; ++current_frame)
+	{
+		float starting_height = 1.88484; //so that a fall lasts a little less than 1/8th of the animation
+		glm::vec3 starting_position = { starting_height, starting_height, 0 };
+		float distance_fallen = (current_frame * current_frame) / (24.0 * 24.0) * 0.5 * 9.81;
+		float x_position = std::sqrt(starting_height * starting_height - distance_fallen * distance_fallen);
 
-  Window window{{image_width, image_height}};
+		glm::vec3 current_position = { std::max(0.0f, x_position), std::max(0.0f, starting_height - distance_fallen), 0.0f };
 
-  while (!window.should_close()) {
-    if (window.get_key(GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-      window.close();
-    }
-    window.show(renderer.color_buffer());
-  }
+		if (current_frame < 15)
+		{
+			positions[current_frame] = current_position;
+		}
 
-  return 0;
+		std::string filename = "C:\\university\\computer_science\\SoSe2024\\SE_I\\programmiersprachen-raytracer\\rendered_images\\rendered_image_";
+		filename += std::to_string(current_frame);
+		filename += ".ppm";
+
+		std::string sdf_filename = "C:\\university\\computer_science\\SoSe2024\\SE_I\\programmiersprachen-raytracer\\sdf_files\\sdf_file_";
+		sdf_filename += std::to_string(current_frame);
+		sdf_filename += ".sdf";
+		write_to_sdf_file(sdf_filename, current_frame, positions);
+
+		Renderer renderer{ image_width, image_height, filename };
+
+		renderer.render(sdf_filename);
+
+		/*Window window{ {image_width, image_height} };
+
+		while (!window.should_close()) {
+			if (window.get_key(GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+				window.close();
+			}
+			window.show(renderer.color_buffer());
+		}*/
+		std::cout << current_frame << "\n";
+	}
+
+	return 0;
 }

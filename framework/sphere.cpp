@@ -9,12 +9,12 @@
 
 Sphere::Sphere(std::string const& name_parameter, std::shared_ptr<Material> const& material_parameter, glm::vec3 const& center_parameter, double radius_parameter) : Shape::Shape{ name_parameter, material_parameter }, center_{center_parameter}, radius_(radius_parameter)
 {
-	std::cout << "Sphere constructor called\n";
+	//std::cout << "Sphere constructor called\n";
 }
 
 Sphere::~Sphere()
 {
-	std::cout << "Sphere destructor called\n";
+	//std::cout << "Sphere destructor called\n";
 }
 
 double Sphere::area() const {
